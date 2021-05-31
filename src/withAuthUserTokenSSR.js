@@ -45,7 +45,8 @@ const withAuthUserTokenSSR =
   (getServerSidePropsFunc) =>
   async (ctx) => {
     const { req, res } = ctx
-    const { keys, secure, signed } = getConfig().cookies
+
+    const { keys, secure, signed, unified } = getConfig().cookies
 
     let AuthUser
 
@@ -58,7 +59,7 @@ const withAuthUserTokenSSR =
     if (useToken) {
       // Get the user's ID token from a cookie, verify it (refreshing
       // as needed), and return the serialized AuthUser in props.
-      const cookieValStr = getCookie(
+      let cookieValStr = getCookie(
         getAuthUserTokensCookieName(),
         {
           req,
@@ -66,6 +67,7 @@ const withAuthUserTokenSSR =
         },
         { keys, secure, signed }
       )
+      if (unified && cookieValStr) cookieValStr = cookieValStr.split('|-|')[0]
       const { idToken, refreshToken } = cookieValStr
         ? JSON.parse(cookieValStr)
         : {}
@@ -77,7 +79,7 @@ const withAuthUserTokenSSR =
     } else {
       // Get the user's info from a cookie, verify it (refreshing
       // as needed), and return the serialized AuthUser in props.
-      const cookieValStr = getCookie(
+      let cookieValStr = getCookie(
         getAuthUserCookieName(),
         {
           req,
@@ -85,6 +87,7 @@ const withAuthUserTokenSSR =
         },
         { keys, secure, signed }
       )
+      if (unified && cookieValStr) cookieValStr = cookieValStr.split('|-|')[1]
       AuthUser = createAuthUser({
         serializedAuthUser: cookieValStr,
       })
