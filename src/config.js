@@ -70,6 +70,7 @@ const defaultConfig = {
     sameSite: 'strict',
     secure: true,
     signed: true,
+    unified: false,
   },
 }
 
@@ -280,6 +281,7 @@ export const setConfig = (userConfig = {}) => {
     cookies: {
       ...defaultConfig.cookies,
       ...cookieOptions,
+      signed: cookieOptions.unified ? false : cookieOptions.signed,
     },
   }
   const { isValid, errors } = validateConfig(mergedConfig)

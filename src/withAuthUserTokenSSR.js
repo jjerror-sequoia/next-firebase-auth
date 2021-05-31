@@ -39,6 +39,7 @@ const withAuthUserTokenSSR =
   async (ctx) => {
     const { req } = ctx
     const AuthUser = await getUserFromCookies({ req, includeToken: useToken })
+
     const AuthUserSerialized = AuthUser.serialize()
 
     // If specified, redirect to the login page if the user is unauthed.

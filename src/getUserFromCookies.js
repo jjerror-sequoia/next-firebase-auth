@@ -38,7 +38,7 @@ const getUserFromCookies = async ({
   authCookieValue,
   authCookieSigValue,
 }) => {
-  const { keys, secure, signed } = getConfig().cookies
+  const { keys, secure, signed, unified } = getConfig().cookies
   let user
 
   // If cookie values are provided instead of a request object, construct
@@ -77,13 +77,15 @@ const getUserFromCookies = async ({
   if (includeToken) {
     // Get the user's ID token from a cookie, verify it (refreshing
     // as needed), and return the serialized AuthUser in props.
-    const cookieValStr = getCookie(
+    let cookieValStr = getCookie(
       getAuthUserTokensCookieName(),
       {
         req,
       },
       { keys, secure, signed }
     )
+    // eslint-disable-next-line prefer-destructuring
+    if (unified && cookieValStr) cookieValStr = cookieValStr.split('|-|')[0]
     const { idToken, refreshToken } = cookieValStr
       ? JSON.parse(cookieValStr)
       : {}
@@ -100,13 +102,15 @@ const getUserFromCookies = async ({
 
     // Get the user's info from a cookie, verify it (refreshing
     // as needed), and return the serialized AuthUser in props.
-    const cookieValStr = getCookie(
+    let cookieValStr = getCookie(
       getAuthUserCookieName(),
       {
         req,
       },
       { keys, secure, signed }
     )
+    // eslint-disable-next-line prefer-destructuring
+    if (unified && cookieValStr) cookieValStr = cookieValStr.split('|-|')[1]
     user = createAuthUser({
       serializedAuthUser: cookieValStr,
     })
