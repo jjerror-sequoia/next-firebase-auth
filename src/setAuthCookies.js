@@ -48,16 +48,7 @@ const setAuthCookies = async (req, res, { token: userProvidedToken } = {}) => {
     signed,
   }))(getConfig().cookies)
 
-  if (unified) {
-    setCookie(
-      name,
-      `${JSON.stringify({ idToken, refreshToken })}|-|${AuthUser.serialize({
-        includeToken: false,
-      })}`,
-      { req, res },
-      cookieOptions
-    )
-  } else {
+  if (!unified) {
     // Store the ID and refresh tokens in a cookie. This
     // cookie will be available to future requests to pages,
     // providing a valid Firebase ID token (refreshed as needed)
@@ -92,6 +83,15 @@ const setAuthCookies = async (req, res, { token: userProvidedToken } = {}) => {
         req,
         res,
       },
+      cookieOptions
+    )
+  } else {
+    setCookie(
+      name,
+      `${JSON.stringify({ idToken, refreshToken })}|-|${AuthUser.serialize({
+        includeToken: false,
+      })}`,
+      { req, res },
       cookieOptions
     )
   }
