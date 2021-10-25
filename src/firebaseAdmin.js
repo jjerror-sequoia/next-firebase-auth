@@ -65,7 +65,11 @@ export const verifyIdToken = async (token, refreshToken = null) => {
       firebaseUser = await admin.auth().verifyIdToken(newToken)
     } else {
       // Otherwise, throw.
-      throw e
+      // Don't throw, instead return a unAuth user.
+      // The token could be expired
+      // https://firebase.google.com/docs/auth/admin/verify-id-tokens#verify_id_tokens_using_a_third-party_jwt_library
+      //throw e
+      return createAuthUser()
     }
   }
   const AuthUser = createAuthUser({
