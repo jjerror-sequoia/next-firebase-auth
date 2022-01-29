@@ -26,7 +26,7 @@ export interface AuthUser {
   displayName: string | null
   photoURL: string | null
   claims: Record<string, string | boolean>
-  getIdToken: () => Promise<string | null>
+  getIdToken: (forceRefresh?: boolean) => Promise<string | null>
   clientInitialized: boolean
   firebaseUser: Firebase.User | null
   signOut: () => Promise<void>
@@ -48,15 +48,22 @@ interface AuthUserContext extends AuthUser {
 type URLResolveFunction = (obj: {
   ctx: GetServerSidePropsContext<ParsedUrlQuery>
   AuthUser: AuthUser
-}) => string
+}) => string | RedirectObject
 
-type PageURL = string | URLResolveFunction
+type RedirectObject = {
+  destination: string | URLResolveFunction
+  basePath: boolean
+}
+
+type PageURL = string | RedirectObject | URLResolveFunction
 
 interface InitConfig {
   authPageURL?: PageURL
   appPageURL?: PageURL
   loginAPIEndpoint?: string
   logoutAPIEndpoint?: string
+  onVerifyTokenError?: (error: unknown) => void
+  onTokenRefreshError?: (error: unknown) => void
   tokenChangedHandler?: (user: AuthUser) => void
   firebaseAdminInitConfig?: {
     credential: {
@@ -127,6 +134,10 @@ export const verifyIdToken: (token: string) => Promise<AuthUser>
 
 export const withAuthUser: <P = unknown>(options?: {
   whenAuthed?: AuthAction.RENDER | AuthAction.REDIRECT_TO_APP
+  whenAuthedBeforeRedirect?:
+    | AuthAction.RENDER
+    | AuthAction.SHOW_LOADER
+    | AuthAction.RETURN_NULL
   whenUnauthedBeforeInit?:
     | AuthAction.RENDER
     | AuthAction.REDIRECT_TO_LOGIN

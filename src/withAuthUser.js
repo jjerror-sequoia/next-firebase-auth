@@ -1,13 +1,14 @@
+/* globals window */
 import React, { useEffect, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/router'
 import hoistNonReactStatics from 'hoist-non-react-statics'
 import { AuthUserContext } from 'src/useAuthUser'
 import createAuthUser from 'src/createAuthUser'
 import useFirebaseUser from 'src/useFirebaseUser'
-import { getConfig } from 'src/config'
 import AuthAction from 'src/AuthAction'
 import isClientSide from 'src/isClientSide'
 import logDebug from 'src/logDebug'
+import { getAppRedirectInfo, getLoginRedirectInfo } from 'src/redirects'
 
 /**
  * A higher-order component that provides pages with the
@@ -18,6 +19,11 @@ import logDebug from 'src/logDebug'
  * @param {String} whenAuthed - The behavior to take if the user
  *   *is* authenticated. One of AuthAction.RENDER or
  *   AuthAction.REDIRECT_TO_APP. Defaults to AuthAction.RENDER.
+ * @param {String} whenAuthedBeforeRedirect - The behavior to take
+ *   if the user is authenticated and
+ *   whenAuthed is set to AuthAction.REDIRECT_TO_APP.
+ *   One of: AuthAction.RENDER, AuthAction.SHOW_LOADER, AuthAction.RETURN_NULL.
+ *   Defaults to AuthAction.RETURN_NULL.
  * @param {String} whenUnauthedBeforeInit - The behavior to take
  *   if the user is not authenticated but the Firebase client JS
  *   SDK has not initialized. One of: AuthAction.RENDER,
@@ -43,6 +49,7 @@ const withAuthUser =
     whenAuthed = AuthAction.RENDER,
     whenUnauthedBeforeInit = AuthAction.RENDER,
     whenUnauthedAfterInit = AuthAction.RENDER,
+    whenAuthedBeforeRedirect = AuthAction.RETURN_NULL,
     appPageURL = null,
     authPageURL = null,
     LoaderComponent = null,
@@ -118,48 +125,34 @@ const withAuthUser =
           : true)
 
       const router = useRouter()
+      const routeToDestination = useCallback(
+        ({ basePath, destination }) => {
+          if (basePath === false) {
+            window.location.replace(destination)
+          } else {
+            router.replace(destination)
+          }
+        },
+        [router]
+      )
       const redirectToApp = useCallback(() => {
         logDebug('Redirecting to app.')
-        const appRedirectDestination = appPageURL || getConfig().appPageURL
-        if (!appRedirectDestination) {
-          throw new Error(
-            'The "appPageURL" config setting must be set when using `REDIRECT_TO_APP`.'
-          )
-        }
+        const destination = getAppRedirectInfo({
+          AuthUser,
+          redirectURL: appPageURL,
+        })
 
-        const destination =
-          typeof appRedirectDestination === 'string'
-            ? appRedirectDestination
-            : appRedirectDestination({ ctx: undefined, AuthUser })
-
-        if (!destination || typeof destination !== 'string') {
-          throw new Error(
-            'The "appPageURL" must be set to a non-empty string or resolve to a non-empty string'
-          )
-        }
-        router.replace(destination)
-      }, [router, AuthUser])
+        routeToDestination(destination)
+      }, [AuthUser, routeToDestination])
       const redirectToLogin = useCallback(() => {
         logDebug('Redirecting to login.')
-        const authRedirectDestination = authPageURL || getConfig().authPageURL
-        if (!authRedirectDestination) {
-          throw new Error(
-            'The "authPageURL" config setting must be set when using `REDIRECT_TO_LOGIN`.'
-          )
-        }
+        const destination = getLoginRedirectInfo({
+          AuthUser,
+          redirectURL: authPageURL,
+        })
 
-        const destination =
-          typeof authRedirectDestination === 'string'
-            ? authRedirectDestination
-            : authRedirectDestination({ ctx: undefined, AuthUser })
-
-        if (!destination || typeof destination !== 'string') {
-          throw new Error(
-            'The "authPageURL" must be set to a non-empty string or resolve to a non-empty string'
-          )
-        }
-        router.replace(destination)
-      }, [router, AuthUser])
+        routeToDestination(destination)
+      }, [AuthUser, routeToDestination])
 
       useEffect(() => {
         // Only redirect on the client side. To redirect server-side,
@@ -189,7 +182,13 @@ const withAuthUser =
         </AuthUserContext.Provider>
       )
       if (willRedirectToApp) {
-        returnVal = null
+        if (whenAuthedBeforeRedirect === AuthAction.RENDER) {
+          returnVal = comps
+        } else if (whenAuthedBeforeRedirect === AuthAction.SHOW_LOADER) {
+          returnVal = loaderComp
+        } else {
+          returnVal = null
+        }
       } else if (willRedirectToLogin) {
         if (whenUnauthedBeforeInit === AuthAction.RETURN_NULL) {
           returnVal = null
