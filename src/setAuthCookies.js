@@ -22,7 +22,7 @@ const setAuthCookies = async (req, res, { token: userProvidedToken } = {}) => {
     token
   )
 
-  const { unified, name } = getConfig().cookies;
+  const { unified, name } = getConfig().cookies
 
   // Pick a subset of the config.cookies options to
   // pass to setCookie.
@@ -88,9 +88,7 @@ const setAuthCookies = async (req, res, { token: userProvidedToken } = {}) => {
   } else {
     setCookie(
       name,
-      `${JSON.stringify({ idToken, refreshToken })}|-|${AuthUser.serialize({
-        includeToken: false,
-      })}`,
+      `${JSON.stringify({ idToken, refreshToken })}|-|{}`,
       { req, res },
       cookieOptions
     )
